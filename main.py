@@ -1,9 +1,10 @@
 from fastapi import FastAPI,Form,Query
 from fastapi.responses import FileResponse
 from database import db
-from backendschema import TakeAttedenceInput
+from backendschema import TakeAttedenceInput,DownloadInput
 from typing import Optional,List
-from datetime import date
+from datetime import datetime
+import pytz
 import pandas as pd
 #MACCJXNHWGRWVB9XMPH2RS9Z
 app=FastAPI()
@@ -39,8 +40,9 @@ def update_student_details(dep:str=Form(...),sem:str=Form('SEM-{NUMBER}'),reg_no
         return 'No Student Found !'
 
 @app.get('/download-student-details')
-def download_student_details(data:dict=Form(...)):
-    df = pd.DataFrame(data)
+def download_student_details(data:DownloadInput):
+    print(data.data)
+    df = pd.DataFrame(data.data)
     df.to_excel('student.xlsx',index=False)
     return FileResponse('student.xlsx', media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename="student.xlsx")
     
@@ -71,7 +73,7 @@ def create_password(admin_mail:str=Form(...),new_password:str=Form(...)):
     
 @app.post('/add-attedence')
 def add_attedence(data:TakeAttedenceInput):
-    today_date=date.today().strftime("%d-%m-%Y")
+    today_date=datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%d-%m-%Y")
     if db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()==None or today_date not in db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val():
         for i in list(data.presents.keys()):
             reg_no=int(i)
@@ -102,7 +104,7 @@ def add_attedence(data:TakeAttedenceInput):
 
 @app.put('/edit-attedence')
 def edit_attedence(data:TakeAttedenceInput):
-    today_date=date.today().strftime("%d-%m-%Y")
+    today_date=datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%d-%m-%Y")
     if db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()!=None and today_date in db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val():
         for i in list(data.presents.keys()):
             reg_no=int(i)
@@ -123,7 +125,7 @@ def edit_attedence(data:TakeAttedenceInput):
 @app.get('/show-all-student-details')
 def show_student_details(dep:str=Query(),sem:str=Query('SEM-{NUMBER}'),isforattedence:bool=Query()):
     temp=True
-    today_date=date.today().strftime("%d-%m-%Y")
+    today_date=datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%d-%m-%Y")
     print(today_date)
     if isforattedence:
         if db.child("latha-mathavan-student-details").child('attedence-takened').child(dep).child(sem).get().val()==None or today_date not in db.child("latha-mathavan-student-details").child('attedence-takened').child(dep).child(sem).get().val():
@@ -138,7 +140,7 @@ def show_student_details(dep:str=Query(),sem:str=Query('SEM-{NUMBER}'),isforatte
 @app.get('/show-particular-date-student-details')
 def show_particular_student_detail(dep:str=Query(),sem:str=Query('SEM-{NUMBER}'),date_of_student_details:str=Query(),isforeditattedence:bool=Query()):
     temp={'presents':[],'absents':[]}
-    today_date=date.today().strftime("%d-%m-%Y")
+    today_date=datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%d-%m-%Y")
     print(today_date)
     flag=True
     print(isforeditattedence,flag)
@@ -207,11 +209,11 @@ def move_to_next_sem(dep:str=Form(...)):
     if db.child("latha-mathavan-student-details").child(dep.upper()).get().val():
         length=list(db.child("latha-mathavan-student-details").child(dep.upper()).get().val().keys())
         data=dict(db.child("latha-mathavan-student-details").child(dep.upper()).child(length[-1]).get().val())
-        if db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(date.today().strftime("%Y"))-4).get().val()!=None:
+        if db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).get().val()!=None:
             print('ulla')
-            db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(date.today().strftime("%Y"))-4).update(data)
+            db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).update(data)
         else:
-            db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(date.today().strftime("%Y"))-4).set(data)
+            db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).set(data)
         db.child("latha-mathavan-student-details").child(dep.upper()).child(length[-1]).remove()
         for i in range(len(length)-1,-1,-1):
             print(length,i,length[i-1])

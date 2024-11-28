@@ -39,7 +39,7 @@ def update_student_details(dep:str=Form(...),sem:str=Form('SEM-{NUMBER}'),reg_no
         return 'No Student Found !'
 
 @app.get('/download-student-details')
-def download_student_details(data:list=Form(...)):
+def download_student_details(data:dict=Form(...)):
     df = pd.DataFrame(data)
     df.to_excel('student.xlsx',index=False)
     return FileResponse('student.xlsx', media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename="student.xlsx")
@@ -124,6 +124,7 @@ def edit_attedence(data:TakeAttedenceInput):
 def show_student_details(dep:str=Query(),sem:str=Query('SEM-{NUMBER}'),isforattedence:bool=Query()):
     temp=True
     today_date=date.today().strftime("%d-%m-%Y")
+    print(today_date)
     if isforattedence:
         if db.child("latha-mathavan-student-details").child('attedence-takened').child(dep).child(sem).get().val()==None or today_date not in db.child("latha-mathavan-student-details").child('attedence-takened').child(dep).child(sem).get().val():
             temp=True
@@ -138,6 +139,7 @@ def show_student_details(dep:str=Query(),sem:str=Query('SEM-{NUMBER}'),isforatte
 def show_particular_student_detail(dep:str=Query(),sem:str=Query('SEM-{NUMBER}'),date_of_student_details:str=Query(),isforeditattedence:bool=Query()):
     temp={'presents':[],'absents':[]}
     today_date=date.today().strftime("%d-%m-%Y")
+    print(today_date)
     flag=True
     print(isforeditattedence,flag)
     if isforeditattedence:

@@ -1,3 +1,4 @@
 fastapi
 uvicorn
 pyrebase4
+python-dotenv

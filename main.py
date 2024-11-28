@@ -1,9 +1,10 @@
 from fastapi import FastAPI,Form,Query
+from fastapi.responses import FileResponse
 from database import db
 from backendschema import TakeAttedenceInput
 from typing import Optional,List
 from datetime import date
-import datetime
+import pandas as pd
 #MACCJXNHWGRWVB9XMPH2RS9Z
 app=FastAPI()
 
@@ -36,6 +37,12 @@ def update_student_details(dep:str=Form(...),sem:str=Form('SEM-{NUMBER}'),reg_no
         return 'Updated Successfully'
     else:
         return 'No Student Found !'
+
+@app.get('/download-student-details')
+def download_student_details(data:list=Form(...)):
+    df = pd.DataFrame(data)
+    df.to_excel('student.xlsx',index=False)
+    return FileResponse('student.xlsx', media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename="student.xlsx")
     
 @app.get('/verify-password')
 def verify_password(password:str=Form(...)):

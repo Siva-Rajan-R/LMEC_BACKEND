@@ -3,3 +3,6 @@ uvicorn
 pyrebase4
 python-dotenv
 python-multipart
+pydantic
+pandas
+openpyxl

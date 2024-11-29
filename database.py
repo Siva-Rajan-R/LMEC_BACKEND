@@ -1,7 +1,5 @@
 import pyrebase
 import os
-"""from dotenv import load_dotenv
-load_dotenv()"""
 
 config={
     'apiKey': os.getenv('FIREBASE_API_KEY'),

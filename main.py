@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Form,Query
+from fastapi import FastAPI,Form,Query,BackgroundTasks
 from fastapi.responses import FileResponse
 from database import db
 from backendschema import TakeAttedenceInput,DownloadInput
@@ -6,9 +6,20 @@ from typing import Optional,List
 from datetime import datetime
 import pytz
 import pandas as pd
+from icecream import ic
+import requests
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 #MACCJXNHWGRWVB9XMPH2RS9Z
 app=FastAPI()
 
+
+def send_message(message,ph_no):
+    ic(message,ph_no)
+    url = f"https://www.fast2sms.com/dev/bulkV2?authorization=EixFb1Oqnv4kC2JU9g3S0LAyGcMwYeKRThNfodIWZH5ar87tjXwXY5G9yMzNBCAnbjfrp682KhtWg0LS&route=q&message={message}&flash=0&numbers={ph_no}"
+    response = requests.get(url)
+    print(response.json())
 
 @app.post('/add-student-details')
 def add_student_details(dep:str=Form(...),sem:str=Form('SEM-{NUMBER}'),reg_no:int=Form(...),student_name:str=Form(...),student_ph_no:int=Form(...),parent_ph_no:int=Form(...)):
@@ -72,7 +83,7 @@ def create_password(admin_mail:str=Form(...),new_password:str=Form(...)):
 
     
 @app.post('/add-attedence')
-def add_attedence(data:TakeAttedenceInput):
+def add_attedence(data:TakeAttedenceInput,bgtask:BackgroundTasks):
     today_date=datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%d-%m-%Y")
     if db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()==None or today_date not in db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val():
         for i in list(data.presents.keys()):
@@ -83,7 +94,14 @@ def add_attedence(data:TakeAttedenceInput):
                 if temp and today_date not in temp:
                     print(temp)
                     temp.append(today_date)
-                    db.child("latha-mathavan-student-details").child(data.dep.upper()).child(data.sem).child(reg_no).child('presents').set(temp) 
+                    db.child("latha-mathavan-student-details").child(data.dep.upper()).child(data.sem).child(reg_no).child('presents').set(temp)
+            else:
+                student_data=db.child("latha-mathavan-student-details").child(data.dep.upper()).child(data.sem).child(reg_no).get().val()
+                ph_no=int(student_data.get('parent_ph_no'))
+                name=student_data.get('student_name')
+                message=f'லதா மாதவன் கல்லூரி:\nஉங்கள் மகன்/மகள் {name}, இன்று கல்லூரிக்கு வரவில்லை ஏதேனும் தகவல் இருக்குமாயின் கல்லூரிக்கு தெரிய படுத்துங்கள் நன்றி'
+                bgtask.add_task(send_message,message,ph_no)
+
         
         if db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()!=None:
             t=db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()

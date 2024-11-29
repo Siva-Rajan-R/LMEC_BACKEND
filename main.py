@@ -6,17 +6,15 @@ from typing import Optional,List
 from datetime import datetime
 import pytz
 import pandas as pd
-from icecream import ic
 import requests
-import sys
+"""import sys
 import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')"""
 #MACCJXNHWGRWVB9XMPH2RS9Z
 app=FastAPI()
 
 
 def send_message(message,ph_no):
-    ic(message,ph_no)
     url = f"https://www.fast2sms.com/dev/bulkV2?authorization=EixFb1Oqnv4kC2JU9g3S0LAyGcMwYeKRThNfodIWZH5ar87tjXwXY5G9yMzNBCAnbjfrp682KhtWg0LS&route=q&message={message}&flash=0&numbers={ph_no}"
     response = requests.get(url)
     print(response.json())

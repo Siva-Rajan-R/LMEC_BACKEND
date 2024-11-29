@@ -97,7 +97,9 @@ def add_attedence(data:TakeAttedenceInput,bgtask:BackgroundTasks):
                 student_data=db.child("latha-mathavan-student-details").child(data.dep.upper()).child(data.sem).child(reg_no).get().val()
                 ph_no=int(student_data.get('parent_ph_no'))
                 name=student_data.get('student_name')
-                message=f'லதா மாதவன் கல்லூரி:\nஉங்கள் மகன்/மகள் {name}, இன்று கல்லூரிக்கு வரவில்லை ஏதேனும் தகவல் இருக்குமாயின் கல்லூரிக்கு தெரிய படுத்துங்கள் நன்றி'
+                #லதா மாதவன் கல்லூரி:\nஉங்கள் மகன்/மகள் {name}, இன்று கல்லூரிக்கு வரவில்லை ஏதேனும் தகவல் இருக்குமாயின் கல்லூரிக்கு தெரிய படுத்துங்கள் நன்றி
+                
+                message=f'From Latha Mathavan Group of Insitute,\nYour Son/Daughter {name.title()} Today Was Not Present Please Kindly Inform To Your Department\nThank You !'
                 bgtask.add_task(send_message,message,ph_no)
 
         

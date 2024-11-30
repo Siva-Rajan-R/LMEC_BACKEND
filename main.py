@@ -15,9 +15,8 @@ app=FastAPI()
 
 
 def send_message(message,ph_no):
-    url = f"https://www.fast2sms.com/dev/bulkV2?authorization=EixFb1Oqnv4kC2JU9g3S0LAyGcMwYeKRThNfodIWZH5ar87tjXwXY5G9yMzNBCAnbjfrp682KhtWg0LS&route=q&message={message}&flash=0&numbers={ph_no}"
-    response = requests.get(url)
-    print(response.json())
+    
+    print(message,ph_no)
 
 @app.post('/add-student-details')
 def add_student_details(dep:str=Form(...),sem:str=Form('SEM-{NUMBER}'),reg_no:int=Form(...),student_name:str=Form(...),student_ph_no:int=Form(...),parent_ph_no:int=Form(...)):
@@ -62,7 +61,7 @@ def verify_password(password:str=Form(...)):
             return True
         else:
             return 'Incorrecr Password'
-    return 'Create A Password by clicking Forgot'
+    return 'Create A Password'
 
 @app.post('/create-password')
 def create_password(admin_mail:str=Form(...),new_password:str=Form(...)):
@@ -103,17 +102,17 @@ def add_attedence(data:TakeAttedenceInput,bgtask:BackgroundTasks):
                 bgtask.add_task(send_message,message,ph_no)
 
         
-        if db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()!=None:
-            t=db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()
+        if db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep.upper()).child(data.sem).get().val()!=None:
+            t=db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep.upper()).child(data.sem).get().val()
             t.append(today_date)
-            db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).set(t)
+            db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep.upper()).child(data.sem).set(t)
 
-        elif db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).child(data.sem).get().val()==None:
-            db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep).update({data.sem:[today_date]})
+        elif db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep.upper()).child(data.sem).get().val()==None:
+            db.child("latha-mathavan-student-details").child('attedence-takened').child(data.dep.upper()).update({data.sem:[today_date]})
 
         else:
             print('veliya')
-            db.child("latha-mathavan-student-details").update({'attedence-takened':{data.dep:{data.sem:[today_date]}}})  
+            db.child("latha-mathavan-student-details").update({'attedence-takened':{data.dep.upper():{data.sem:[today_date]}}})  
         return f'{today_date} Attedence Taken Successfully'
     else:
         return 'Today Attedence Already Taken'
@@ -170,7 +169,6 @@ def show_particular_student_detail(dep:str=Query(),sem:str=Query('SEM-{NUMBER}')
             flag=False
     print(flag)
     if flag:
-        print('ull')
         if db.child("latha-mathavan-student-details").child(dep.upper()).get().val() and db.child("latha-mathavan-student-details").child(dep.upper()).child(sem).get().val():
             print(db.child("latha-mathavan-student-details").child(dep.upper()).child(sem).get().val())
             for i in db.child("latha-mathavan-student-details").child(dep.upper()).child(sem).get().val():
@@ -194,17 +192,23 @@ def show_old_student_details(dep:str=Query(),year:str=Query()):
         return 'No Student Record Fount At this Date'
 
 @app.get('/calculate-student-attedence')
-def calculate_student_attedence(nod_student_present:int=Query(),dep:str=Query(),sem:str=Query()):
+def calculate_student_attedence(nod_student_present:int=Query(),dep:str=Query(),sem:str=Query(),isforoldstudents:bool=Query(),year:str=Query(None)):
+    if isforoldstudents:
+        nod_attedence_taken=db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(year).child('Number_Of_Days_Attedence_Taken').get().val()
+        print(nod_attedence_taken)
     if db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(sem).get().val()!=None:
         nod_attedence_taken=len(db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(sem).get().val())
         print(nod_attedence_taken)
-        return nod_attedence_taken-nod_student_present
+    return {'attedence_percentage':nod_attedence_taken-nod_student_present,'no_of_days_attedence_taken':nod_attedence_taken}
 
 @app.delete('/delete-current-student-details')
 def delete_student_details(delete_all:bool=Form(...),dep:str=Form(...),sem:str=Form('SEM-{NUMBER}'),reg_no:Optional[int]=Form(None)):
     if db.child("latha-mathavan-student-details").child(dep.upper()).get().val() and db.child("latha-mathavan-student-details").child(dep.upper()).child(sem).get().val():
         if delete_all:
+            if db.child("latha-mathavan-student-details").child('attedence-takened').get().val()!=None and db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).get().val()!=None:
+                db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(sem).remove()
             db.child("latha-mathavan-student-details").child(dep.upper()).child(sem).remove()
+            
             return 'All Students Deleted Successfully'
         else:
             db.child("latha-mathavan-student-details").child(dep.upper()).child(sem).child(reg_no).remove()
@@ -226,21 +230,33 @@ def delete_student_details(delete_all:bool=Form(...),dep:str=Form(...),year:str=
 def move_to_next_sem(dep:str=Form(...)):
     if db.child("latha-mathavan-student-details").child(dep.upper()).get().val():
         length=list(db.child("latha-mathavan-student-details").child(dep.upper()).get().val().keys())
-        data=dict(db.child("latha-mathavan-student-details").child(dep.upper()).child(length[-1]).get().val())
-        if db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).get().val()!=None:
-            print('ulla')
-            db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).update(data)
-        else:
-            db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).set(data)
-        db.child("latha-mathavan-student-details").child(dep.upper()).child(length[-1]).remove()
+            
         for i in range(len(length)-1,-1,-1):
-            print(length,i,length[i-1])
-            if i!=0:
-                temp=db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i-1]).get().val()
-                db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i]).set(temp)
-                db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i-1]).remove()
+            check_sem=int(length[i].split('-')[1])+1
+            next_sem=f"SEM-{check_sem}"
+            if next_sem!='SEM-9':
+                if db.child("latha-mathavan-student-details").child('attedence-takened').get().val()!=None and db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).get().val()!=None:
+                    v=db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(length[i]).get().val()
+                    db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).update({next_sem:v})
+                    db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(length[i]).remove()
+
+                u=db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i]).get().val()
+                db.child("latha-mathavan-student-details").child(dep.upper()).update({next_sem:u})
+                db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i]).remove()
             else:
-                break
+                no_of_days_attedence_taken=0
+                data=dict(db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i]).get().val())
+                if db.child("latha-mathavan-student-details").child('attedence-takened').get().val()!=None and db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).get().val()!=None:
+                    no_of_days_attedence_taken=len(db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(length[i]).get().val())
+                    db.child("latha-mathavan-student-details").child('attedence-takened').child(dep.upper()).child(length[i]).remove()
+                if db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).get().val()!=None:
+                    db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).update(data)
+                else:
+                    db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).set(data)
+                db.child("latha-mathavan-student-details").child("old-student-details").child(dep.upper()).child(int(datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y"))-4).update({'Number_Of_Days_Attedence_Taken':no_of_days_attedence_taken})
+                db.child("latha-mathavan-student-details").child(dep.upper()).child(length[i]).remove()
+
+                
         return 'Successfully Moved'
 
     return 'There Is No Department'

@@ -7,6 +7,7 @@ from datetime import datetime
 import pytz
 import pandas as pd
 import requests
+import os
 """import sys
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')"""
@@ -15,7 +16,9 @@ app=FastAPI()
 
 
 def send_message(message,ph_no):
-    
+    """url = f"https://www.fast2sms.com/dev/bulkV2?authorization={os.getenv('FAST2SMS_API_KEY')}&route=q&message={message}&flash=0&numbers={ph_no}"
+    response = requests.get(url)
+    print(response.json())"""
     print(message,ph_no)
 
 @app.post('/add-student-details')

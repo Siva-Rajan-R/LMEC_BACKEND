@@ -1,4 +1,5 @@
 from fastapi import FastAPI,Form,Query,BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from database import db
 from backendschema import TakeAttedenceInput,DownloadInput
@@ -14,6 +15,13 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')"""
 #MACCJXNHWGRWVB9XMPH2RS9Z
 app=FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 def send_message(message,ph_no):
     """url = f"https://www.fast2sms.com/dev/bulkV2?authorization={os.getenv('FAST2SMS_API_KEY')}&route=q&message={message}&flash=0&numbers={ph_no}"
